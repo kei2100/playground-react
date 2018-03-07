@@ -53,35 +53,49 @@ class Board extends React.Component {
         });
     }
 
-    renderSquare(i) {
+    renderSquare(clickable, i) {
         return (
             <Square
                 value={this.state.squares[i]}
-                onClick={() => this.handleSquareClick(i)}
+                onClick={() => {
+                    if (clickable) {
+                        this.handleSquareClick(i)
+                    }
+                }}
             />
         );
     }
 
     render() {
-        const status = `Next player: ${Board.PLAYERS[this.state.nextPlayer]}`;
+        const winner = calculateWinner(this.state.squares);
+        const clickable = true;
+        let statusLabel;
+        let renderSquare;
+        if (winner == null) {
+            statusLabel = `Next player: ${Board.PLAYERS[this.state.nextPlayer]}`;
+            renderSquare = this.renderSquare.bind(this, clickable)
+        } else {
+            statusLabel = `Winner: ${winner}`;
+            renderSquare = this.renderSquare.bind(this, !clickable)
+        }
 
         return (
             <div>
-                <div className="status">{status}</div>
+                <div className="status">{statusLabel}</div>
                 <div className="board-row">
-                    {this.renderSquare(0)}
-                    {this.renderSquare(1)}
-                    {this.renderSquare(2)}
+                    {renderSquare(0)}
+                    {renderSquare(1)}
+                    {renderSquare(2)}
                 </div>
                 <div className="board-row">
-                    {this.renderSquare(3)}
-                    {this.renderSquare(4)}
-                    {this.renderSquare(5)}
+                    {renderSquare(3)}
+                    {renderSquare(4)}
+                    {renderSquare(5)}
                 </div>
                 <div className="board-row">
-                    {this.renderSquare(6)}
-                    {this.renderSquare(7)}
-                    {this.renderSquare(8)}
+                    {renderSquare(6)}
+                    {renderSquare(7)}
+                    {renderSquare(8)}
                 </div>
             </div>
         );
@@ -135,6 +149,26 @@ class Game extends React.Component {
             </div>
         );
     }
+}
+
+function calculateWinner(squares) {
+    const lines = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        [0, 4, 8],
+        [2, 4, 6],
+    ];
+    for (let i = 0; i < lines.length; i++) {
+        const [a, b, c] = lines[i];
+        if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+            return squares[a];
+        }
+    }
+    return null;
 }
 
 // ========================================
