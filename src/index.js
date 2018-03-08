@@ -16,86 +16,32 @@ function Square(props) {
 
 
 class Board extends React.Component {
-    static PLAYERS = ['O', 'X'];
-
-    constructor(props) {
-        super(props);
-        this.state = {
-            squares: Array(9).fill(null),
-            nextPlayer: 0,
-        };
-    }
-
-    handleSquareClick(i) {
-        if (this.state.squares[i] != null) {
-            return
-        }
-        /*
-         immutableにするために、直接this.state.squaresを書き換えるのではなくコピーを作成し、
-         コピーに対して状態の変更を行い、それを使ってsetStateする
-
-         immutableにする利点は
-
-         - 複雑な機能を実装するのを容易にする。たとえばある状態を保存しておき、後で必要になったら差し戻すなど。
-         - 状態の変更している箇所をトラッキングしやすくなる。
-         - どこで再レンダリングされるのか容易に判定できる。
-         */
-        const ss = this.state.squares.slice();
-        const np = this.state.nextPlayer;
-        ss[i] = Board.PLAYERS[np];
-        /*
-         this.setStateが呼び出されると、コンポーネントの更新がスケジュールされ、子孫とともにコンポーネントレンダリングされる
-         再レンダリングされるときは、this.state.squares[i]は 'X'になるので、グリッドにXが表示される。
-         */
-        this.setState({
-            squares: ss,
-            nextPlayer: (np + 1) % Board.PLAYERS.length,
-        });
-    }
-
-    renderSquare(i, clickable) {
+    renderSquare(i) {
         return (
             <Square
-                value={this.state.squares[i]}
-                onClick={() => {
-                    if (clickable) {
-                        this.handleSquareClick(i)
-                    }
-                }}
+                value={this.props.squares[i]}
+                onClick={() => this.props.onClick(i)}
             />
         );
     }
 
     render() {
-        const winner = calculateWinner(this.state.squares);
-        let clickable;
-        let statusLabel;
-        if (winner == null) {
-            statusLabel = `Next player: ${Board.PLAYERS[this.state.nextPlayer]}`;
-            clickable = true;
-
-        } else {
-            statusLabel = `Winner: ${winner}`;
-            clickable = false;
-        }
-
         return (
             <div>
-                <div className="status">{statusLabel}</div>
                 <div className="board-row">
-                    {this.renderSquare(0, clickable)}
-                    {this.renderSquare(1, clickable)}
-                    {this.renderSquare(2, clickable)}
+                    {this.renderSquare(0)}
+                    {this.renderSquare(1)}
+                    {this.renderSquare(2)}
                 </div>
                 <div className="board-row">
-                    {this.renderSquare(3, clickable)}
-                    {this.renderSquare(4, clickable)}
-                    {this.renderSquare(5, clickable)}
+                    {this.renderSquare(3)}
+                    {this.renderSquare(4)}
+                    {this.renderSquare(5)}
                 </div>
                 <div className="board-row">
-                    {this.renderSquare(6, clickable)}
-                    {this.renderSquare(7, clickable)}
-                    {this.renderSquare(8, clickable)}
+                    {this.renderSquare(6)}
+                    {this.renderSquare(7)}
+                    {this.renderSquare(8)}
                 </div>
             </div>
         );
@@ -104,11 +50,6 @@ class Board extends React.Component {
         return (React.createElement(
             "div",
             null,
-            React.createElement(
-                "div",
-                { className: "status" },
-                status
-            ),
             React.createElement(
                 "div",
                 { className: "board-row" },
@@ -136,15 +77,97 @@ class Board extends React.Component {
 }
 
 class Game extends React.Component {
+    static PLAYERS = ['O', 'X'];
+
+    constructor(props) {
+        super(props);
+        this.state = {
+            history: [
+                {squares: Array(9).fill(null)}
+            ],
+            stepNumber: 0,
+        };
+    }
+
+    jumpTo(stepNumber) {
+        this.setState({
+            history: this.state.history.slice(0, stepNumber + 1),
+            stepNumber: stepNumber,
+        });
+    }
+
+    currentSquares() {
+        const h = this.state.history;
+        const sn = this.state.stepNumber;
+        return h[sn].squares.slice();
+    }
+
+    nextPlayer() {
+        return Game.PLAYERS[this.state.stepNumber % Game.PLAYERS.length];
+    }
+
+    handleClick(i) {
+        const squares = this.currentSquares();
+        if (squares[i] != null) {
+            return;
+        }
+        /*
+         immutableにするために、直接this.stateを書き換えるのではなくコピーを作成し、
+         コピーに対して状態の変更を行い、それを使ってsetStateする
+
+         immutableにする利点は
+
+         - 複雑な機能を実装するのを容易にする。たとえばある状態を保存しておき、後で必要になったら差し戻すなど。
+         - 状態の変更している箇所をトラッキングしやすくなる。
+         - どこで再レンダリングされるのか容易に判定できる。
+
+         this.setStateが呼び出されると、コンポーネントの更新がスケジュールされ、子孫とともにコンポーネントレンダリングされる
+         再レンダリングされるときは、this.state.squares[i]は 'X'になるので、グリッドにXが表示される。
+         */
+        squares[i] = this.nextPlayer();
+        this.setState({
+            history: this.state.history.concat({squares: squares}),
+            stepNumber: this.state.stepNumber + 1,
+        });
+    }
+
     render() {
+        const squares = this.currentSquares();
+        const winner = calculateWinner(squares);
+        const statusLabel = winner ?
+            `Winner: ${winner}` : `Next player: ${this.nextPlayer()}`;
+
+        const h = this.state.history;
+        const sn = this.state.stepNumber;
+        const moves = h.slice(0, sn).map((step, stepNumber) => {
+            const desc = stepNumber > 0 ? `Go to move # ${stepNumber}` : 'Go to game start';
+            return (
+                /*
+                 key: 状態を持つリストを作成する場合、Reactが要素を判定できるようにするためにkeyをつけてあげることが強く推奨される。
+                 keyは兄弟間で区別できればよく、グローバルで一意である必要はない。
+                 */
+                <li key={stepNumber}>
+                    <button onClick={() => this.jumpTo(stepNumber)}>{desc}</button>
+                </li>
+            );
+        });
+
         return (
             <div className="game">
                 <div className="game-board">
-                    <Board />
+                    <Board
+                        squares={squares}
+                        clickable={!winner}
+                        onClick={i => {
+                            if (!winner) {
+                                this.handleClick(i);
+                            }
+                        }}
+                    />
                 </div>
                 <div className="game-info">
-                    <div>{/* status */}</div>
-                    <ol>{/* TODO */}</ol>
+                    <div>{statusLabel}</div>
+                    <ol>{moves}</ol>
                 </div>
             </div>
         );
@@ -174,6 +197,6 @@ function calculateWinner(squares) {
 // ========================================
 
 ReactDOM.render(
-    <Game />,
+    <Game/>,
     document.getElementById('root')
 );
