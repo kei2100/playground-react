@@ -53,7 +53,7 @@ class Board extends React.Component {
         });
     }
 
-    renderSquare(clickable, i) {
+    renderSquare(i, clickable) {
         return (
             <Square
                 value={this.state.squares[i]}
@@ -68,34 +68,34 @@ class Board extends React.Component {
 
     render() {
         const winner = calculateWinner(this.state.squares);
-        const clickable = true;
+        let clickable;
         let statusLabel;
-        let renderSquare;
         if (winner == null) {
             statusLabel = `Next player: ${Board.PLAYERS[this.state.nextPlayer]}`;
-            renderSquare = this.renderSquare.bind(this, clickable)
+            clickable = true;
+
         } else {
             statusLabel = `Winner: ${winner}`;
-            renderSquare = this.renderSquare.bind(this, !clickable)
+            clickable = false;
         }
 
         return (
             <div>
                 <div className="status">{statusLabel}</div>
                 <div className="board-row">
-                    {renderSquare(0)}
-                    {renderSquare(1)}
-                    {renderSquare(2)}
+                    {this.renderSquare(0, clickable)}
+                    {this.renderSquare(1, clickable)}
+                    {this.renderSquare(2, clickable)}
                 </div>
                 <div className="board-row">
-                    {renderSquare(3)}
-                    {renderSquare(4)}
-                    {renderSquare(5)}
+                    {this.renderSquare(3, clickable)}
+                    {this.renderSquare(4, clickable)}
+                    {this.renderSquare(5, clickable)}
                 </div>
                 <div className="board-row">
-                    {renderSquare(6)}
-                    {renderSquare(7)}
-                    {renderSquare(8)}
+                    {this.renderSquare(6, clickable)}
+                    {this.renderSquare(7, clickable)}
+                    {this.renderSquare(8, clickable)}
                 </div>
             </div>
         );
